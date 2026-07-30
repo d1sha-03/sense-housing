@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sense — Housing Accessibility Insights
+
+Sense helps families evaluate how accessible a home's surrounding environment is before
+scheduling a tour or purchasing a home. Rather than reducing a neighborhood to a single
+"accessibility score," Sense surfaces several categories of publicly available geographic
+information with evidence, so families can make their own informed decisions.
+
+This is an MVP: it only analyzes public geographic data. There is no Zillow integration, AI
+image analysis, authentication, accounts, or saved searches yet.
+
+## Tech Stack
+
+- Next.js (App Router) + React + TypeScript
+- Tailwind CSS v4
+- Leaflet + OpenStreetMap tiles (embedded map) — free, no API key
+- Nominatim (address → coordinates) — free, no API key
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+No API keys or environment variables are needed — the map and geocoding both run on free,
+keyless OpenStreetMap services. `.env.local.example` is kept as a placeholder for future data
+sources that may need credentials.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> Nominatim (the geocoding service) asks that usage stay light — roughly one request per
+> second — which is more than enough for an MVP demo. If this ever needs to scale up, swap
+> `getCoordinates` in `src/lib/geocoding.ts` for a paid provider (Google, Mapbox, LocationIQ).
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── page.tsx              # Landing page + report view (single-page flow)
+│   └── api/report/route.ts   # POST { address } → full AccessibilityReport JSON
+├── components/
+│   ├── SearchBar.tsx, PropertyMap.tsx, Logo.tsx, ReportCard.tsx, ...
+│   └── cards/                # NoiseCard, HazardsCard, AccessCard, SchoolsCard, NotesCard
+└── lib/
+    ├── types.ts              # Shared report/data types
+    ├── geocoding.ts          # getCoordinates(address) — real Nominatim call, no key needed
+    ├── noise.ts               # getNoiseInformation() — mock data
+    ├── hazards.ts             # getFaultInformation() — mock data; flood/wildfire coming soon
+    ├── services.ts            # getNearbyServices() — mock data
+    ├── schools.ts             # getSchoolInformation() — mock data
+    └── report.ts              # buildAccessibilityReport() — composes the above
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Each data-source helper (`getNoiseInformation`, `getFaultInformation`, `getNearbyServices`,
+`getSchoolInformation`) returns structured JSON matching the shapes in `lib/types.ts` and is
+currently backed by deterministic mock data. They're intentionally isolated so any one of them
+can be swapped for a real data source (e.g. USGS fault data, Google Places, GTFS transit data)
+without touching the UI.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Report Categories
 
-## Deploy on Vercel
+Each report has five cards, shown without a combined "overall score":
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Noise Environment** — distance to train tracks, highway, airport; risk indicator
+2. **Natural Hazards** — nearest fault line (implemented); flood and wildfire ("Coming Soon")
+3. **Neighborhood Access** — nearest hospital, park, pharmacy, transit stop
+4. **Schools** — nearest elementary school; special education info ("Coming Soon")
+5. **Sense Notes** — disclaimer that this is not a substitute for an in-person visit
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roadmap (not in this MVP)
+
+- Browser extension
+- AI image analysis
+- Personalized accessibility profiles
+- Community accessibility reports
+- Real data sources for flood, wildfire, and special education information
