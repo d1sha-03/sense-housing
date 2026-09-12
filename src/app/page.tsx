@@ -81,7 +81,7 @@ export default function Home() {
           </section>
         ) : (
           <section className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-            <div className="animate-fade-in">
+            <div className="relative z-20 animate-fade-in">
               <SearchBar onSubmit={handleSearch} isLoading={isLoading} />
               {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             </div>

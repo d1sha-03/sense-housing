@@ -30,3 +30,14 @@ export function ComingSoonBadge() {
     </span>
   );
 }
+
+/** Shown when a real data integration was attempted but failed or has no
+ * coverage for this location — distinct from a feature that's simply not
+ * built yet (see ComingSoonBadge). */
+export function UnavailableBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/40">
+      Data Unavailable
+    </span>
+  );
+}

@@ -17,14 +17,30 @@ export interface GeocodedAddress extends Coordinates {
 export interface DistanceMeasurement {
   label: string;
   distanceMiles: number | null;
-  /** "Coming Soon" style sources set this instead of a distance. */
-  status?: "available" | "coming_soon";
+  /**
+   * "coming_soon": feature intentionally not built yet.
+   * "unavailable": a real integration was attempted but failed or has no
+   * coverage for this location (e.g. an upstream API outage or data gap).
+   * Omitted/"available": a real result, though distanceMiles may still be
+   * null if the source found nothing within its search radius.
+   */
+  status?: "available" | "coming_soon" | "unavailable";
+}
+
+export interface NearbyService extends DistanceMeasurement {
+  /**
+   * The specific named feature found (e.g. "FDR Drive", "Mount Sinai
+   * Hospital"). Null when a match was found but OSM/the source has no name
+   * for it (common for unnamed park polygons, minor roads, etc.) — the UI
+   * falls back to the generic category label in that case.
+   */
+  name: string | null;
 }
 
 export interface NoiseInformation {
-  nearestTrainTracks: DistanceMeasurement;
-  nearestHighway: DistanceMeasurement;
-  nearestAirport: DistanceMeasurement;
+  nearestTrainTracks: NearbyService;
+  nearestHighway: NearbyService;
+  nearestAirport: NearbyService;
   risk: RiskLevel;
   summary: string;
 }
@@ -34,14 +50,18 @@ export interface FaultLineInformation extends DistanceMeasurement {
   risk: RiskLevel;
 }
 
-export interface NaturalHazardsInformation {
-  faultLine: FaultLineInformation;
-  flood: { status: "coming_soon" };
-  wildfire: { status: "coming_soon" };
+export interface HazardAssessment {
+  label: string;
+  status: "available" | "unavailable";
+  risk?: RiskLevel;
+  /** Human-readable context, e.g. a FEMA flood zone code or WHP class. */
+  detail?: string;
 }
 
-export interface NearbyService extends DistanceMeasurement {
-  name: string;
+export interface NaturalHazardsInformation {
+  faultLine: FaultLineInformation;
+  flood: HazardAssessment;
+  wildfire: HazardAssessment;
 }
 
 export interface NeighborhoodAccessInformation {
@@ -49,11 +69,15 @@ export interface NeighborhoodAccessInformation {
   park: NearbyService;
   pharmacy: NearbyService;
   transitStop: NearbyService;
+  groceryStore: NearbyService;
+  gasStation: NearbyService;
   summary: string;
 }
 
 export interface SchoolsInformation {
   nearestElementarySchool: NearbyService;
+  nearestMiddleSchool: NearbyService;
+  nearestHighSchool: NearbyService;
   specialEducation: { status: "coming_soon" };
 }
 

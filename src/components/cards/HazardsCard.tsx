@@ -1,8 +1,29 @@
 import { Mountain } from "lucide-react";
 import { ReportCard } from "../ReportCard";
-import { RiskBadge } from "../RiskBadge";
+import { RiskBadge, UnavailableBadge } from "../RiskBadge";
 import { DistanceRow } from "../DistanceRow";
-import type { NaturalHazardsInformation } from "@/lib/types";
+import type { HazardAssessment, NaturalHazardsInformation } from "@/lib/types";
+
+function HazardRow({ assessment }: { assessment: HazardAssessment }) {
+  if (assessment.status === "unavailable") {
+    return (
+      <div className="flex items-center justify-between border-b border-border-subtle/70 py-2.5 last:border-b-0 last:pb-0">
+        <p className="text-sm font-medium text-foreground">{assessment.label}</p>
+        <UnavailableBadge />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between border-b border-border-subtle/70 py-2.5 last:border-b-0 last:pb-0">
+      <div>
+        <p className="text-sm font-medium text-foreground">{assessment.label}</p>
+        {assessment.detail && <p className="text-xs text-foreground/50">{assessment.detail}</p>}
+      </div>
+      {assessment.risk && <RiskBadge risk={assessment.risk} />}
+    </div>
+  );
+}
 
 export function HazardsCard({ data }: { data: NaturalHazardsInformation }) {
   return (
@@ -12,9 +33,10 @@ export function HazardsCard({ data }: { data: NaturalHazardsInformation }) {
           label="Nearest Fault Line"
           distanceMiles={data.faultLine.distanceMiles}
           detail={data.faultLine.faultName ?? undefined}
+          status={data.faultLine.status}
         />
-        <DistanceRow label="Flood Information" comingSoon />
-        <DistanceRow label="Wildfire Information" comingSoon />
+        <HazardRow assessment={data.flood} />
+        <HazardRow assessment={data.wildfire} />
       </div>
       <p className="mt-4">
         Fault-line proximity is a general indicator of seismic activity in the area, not a

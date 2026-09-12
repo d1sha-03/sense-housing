@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAccessibilityReport } from "@/lib/report";
 import { GeocodingError } from "@/lib/geocoding";
+import { validateAddress } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const address = typeof body?.address === "string" ? body.address.trim() : "";
 
-  if (!address) {
-    return NextResponse.json({ error: "An address is required." }, { status: 400 });
+  const validationError = validateAddress(address);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
   try {

@@ -16,12 +16,19 @@ const DISCLAIMER =
 export async function buildAccessibilityReport(address: string): Promise<AccessibilityReport> {
   const geocoded = await getCoordinates(address);
 
+  const [noise, naturalHazards, neighborhoodAccess, schools] = await Promise.all([
+    getNoiseInformation(geocoded),
+    getNaturalHazardsInformation(geocoded),
+    getNearbyServices(geocoded),
+    getSchoolInformation(geocoded),
+  ]);
+
   return {
     address: geocoded,
-    noise: getNoiseInformation(geocoded),
-    naturalHazards: getNaturalHazardsInformation(geocoded),
-    neighborhoodAccess: getNearbyServices(geocoded),
-    schools: getSchoolInformation(geocoded),
+    noise,
+    naturalHazards,
+    neighborhoodAccess,
+    schools,
     notes: { disclaimer: DISCLAIMER },
   };
 }

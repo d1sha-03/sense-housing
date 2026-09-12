@@ -14,6 +14,11 @@ export async function getCoordinates(address: string): Promise<GeocodedAddress> 
   url.searchParams.set("q", address);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", "1");
+  // Every other data source in this app (FEMA, USGS, USFS, NCES) is US-only,
+  // so bias geocoding to US results and English names rather than letting an
+  // ambiguous query resolve to a same-named place abroad.
+  url.searchParams.set("countrycodes", "us");
+  url.searchParams.set("accept-language", "en");
 
   const response = await fetch(url.toString(), {
     headers: {

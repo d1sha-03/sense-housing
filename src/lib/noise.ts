@@ -1,5 +1,5 @@
-import type { Coordinates, NoiseInformation, RiskLevel } from "./types";
-import { randomInRange } from "./mockUtils";
+import type { Coordinates, NearbyService, NoiseInformation, RiskLevel } from "./types";
+import { findNearestOverpassElement, OverpassError } from "./overpass";
 
 function riskFromDistance(distanceMiles: number, thresholds: [number, number]): RiskLevel {
   const [highBelow, moderateBelow] = thresholds;
@@ -8,22 +8,49 @@ function riskFromDistance(distanceMiles: number, thresholds: [number, number]): 
   return "low";
 }
 
-/**
- * Returns noise-environment data for a location.
- * Mock data placeholder — will be replaced by real transit/highway/airport
- * proximity data sources.
- */
-export function getNoiseInformation(coords: Coordinates): NoiseInformation {
-  const trainDistance = Number(randomInRange(coords, "train", 0.1, 5).toFixed(1));
-  const highwayDistance = Number(randomInRange(coords, "highway", 0.1, 3).toFixed(1));
-  const airportDistance = Number(randomInRange(coords, "airport", 1, 15).toFixed(1));
+async function assess(
+  coords: Coordinates,
+  label: string,
+  filters: string[],
+  radiusMeters: number,
+  thresholds: [number, number]
+): Promise<{ measurement: NearbyService; risk: RiskLevel }> {
+  try {
+    const found = await findNearestOverpassElement(coords, filters, radiusMeters);
+    if (!found) {
+      // Nothing matched within the radius — treat as low risk rather than
+      // claiming a specific distance we don't have.
+      return { measurement: { label, name: null, distanceMiles: null, status: "available" }, risk: "low" };
+    }
+    const distanceMiles = Number(found.distanceMiles.toFixed(1));
+    return {
+      measurement: { label, name: found.name, distanceMiles, status: "available" },
+      risk: riskFromDistance(distanceMiles, thresholds),
+    };
+  } catch (err) {
+    if (err instanceof OverpassError) {
+      return { measurement: { label, name: null, distanceMiles: null, status: "unavailable" }, risk: "low" };
+    }
+    throw err;
+  }
+}
 
-  const trainRisk = riskFromDistance(trainDistance, [0.3, 1]);
-  const highwayRisk = riskFromDistance(highwayDistance, [0.25, 0.75]);
-  const airportRisk = riskFromDistance(airportDistance, [3, 7]);
+/**
+ * Noise-environment data sourced live from OpenStreetMap via the Overpass
+ * API (see src/lib/overpass.ts). Distances are straight-line to the
+ * nearest matching OSM feature within a per-category search radius —
+ * not measured or modeled noise levels. See README.md for source details
+ * and known limitations (OSM coverage varies by region).
+ */
+export async function getNoiseInformation(coords: Coordinates): Promise<NoiseInformation> {
+  const [train, highway, airport] = await Promise.all([
+    assess(coords, "Train Tracks", ["railway=rail", "railway=light_rail"], 8000, [0.3, 1]),
+    assess(coords, "Highway", ["highway=motorway", "highway=trunk"], 4000, [0.25, 0.75]),
+    assess(coords, "Airport", ["aeroway=aerodrome"], 24000, [3, 7]),
+  ]);
 
   const riskOrder: RiskLevel[] = ["low", "moderate", "high"];
-  const overallRisk = [trainRisk, highwayRisk, airportRisk].reduce((worst, current) =>
+  const overallRisk = [train.risk, highway.risk, airport.risk].reduce((worst, current) =>
     riskOrder.indexOf(current) > riskOrder.indexOf(worst) ? current : worst
   );
 
@@ -35,9 +62,9 @@ export function getNoiseInformation(coords: Coordinates): NoiseInformation {
       : "This property appears to be reasonably distant from major noise sources based on available data.";
 
   return {
-    nearestTrainTracks: { label: "Train Tracks", distanceMiles: trainDistance, status: "available" },
-    nearestHighway: { label: "Highway", distanceMiles: highwayDistance, status: "available" },
-    nearestAirport: { label: "Airport", distanceMiles: airportDistance, status: "available" },
+    nearestTrainTracks: train.measurement,
+    nearestHighway: highway.measurement,
+    nearestAirport: airport.measurement,
     risk: overallRisk,
     summary,
   };
