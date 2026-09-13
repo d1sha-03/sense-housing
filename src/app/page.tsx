@@ -38,7 +38,10 @@ export default function Home() {
   // doesn't mismatch — this restore happens a tick later instead.
   useEffect(() => {
     const lastViewed = readLastViewed<AccessibilityReport>();
-    if (lastViewed && !hasUnavailableData(lastViewed.report)) {
+    if (lastViewed) {
+      // Restore whatever was on screen, even a report with some unavailable
+      // sources — the point is not losing the user's place on refresh, not
+      // guaranteeing completeness (that's the report cache's job below).
       // Deliberate one-time sync from localStorage (an external system) on
       // mount, not state derived from props/state — the pattern the
       // set-state-in-effect rule otherwise guards against.
@@ -80,8 +83,8 @@ export default function Home() {
 
       if (!hasUnavailableData(data)) {
         writeCache(cacheKey, data, REPORT_CACHE_TTL_MS);
-        writeLastViewed(address, data, REPORT_CACHE_TTL_MS);
       }
+      writeLastViewed(address, data, REPORT_CACHE_TTL_MS);
       setReport(data);
       setViewState("idle");
     } catch (err) {
