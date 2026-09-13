@@ -38,7 +38,39 @@ export function writeCache<T>(key: string, value: T, ttlMs: number): void {
   }
 }
 
+export function removeCache(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(PREFIX + key);
+  } catch {
+    // Storage unavailable — nothing to clean up.
+  }
+}
+
 /** Collapses whitespace/case differences so "123 Main St" and " 123 main st " share a cache entry. */
 export function normalizeAddressKey(address: string): string {
   return address.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// Points at whichever address/report the user last viewed, independent of
+// the per-address report cache above, so a hard refresh can restore the
+// screen the user was looking at instead of dropping them back to the
+// empty search page.
+const LAST_VIEWED_KEY = "last-viewed";
+
+export interface LastViewed<T> {
+  address: string;
+  report: T;
+}
+
+export function readLastViewed<T>(): LastViewed<T> | null {
+  return readCache<LastViewed<T>>(LAST_VIEWED_KEY);
+}
+
+export function writeLastViewed<T>(address: string, report: T, ttlMs: number): void {
+  writeCache(LAST_VIEWED_KEY, { address, report }, ttlMs);
+}
+
+export function clearLastViewed(): void {
+  removeCache(LAST_VIEWED_KEY);
 }

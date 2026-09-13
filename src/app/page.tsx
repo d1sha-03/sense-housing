@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { SearchBar } from "@/components/SearchBar";
 import { PropertyMap } from "@/components/PropertyMap";
@@ -10,7 +10,14 @@ import { AccessCard } from "@/components/cards/AccessCard";
 import { SchoolsCard } from "@/components/cards/SchoolsCard";
 import { NotesCard } from "@/components/cards/NotesCard";
 import type { AccessibilityReport } from "@/lib/types";
-import { normalizeAddressKey, readCache, writeCache } from "@/lib/clientCache";
+import {
+  clearLastViewed,
+  normalizeAddressKey,
+  readCache,
+  readLastViewed,
+  writeCache,
+  writeLastViewed,
+} from "@/lib/clientCache";
 import { hasUnavailableData } from "@/lib/reportFreshness";
 
 type ViewState = "idle" | "loading" | "error";
@@ -25,6 +32,22 @@ export default function Home() {
   const [viewState, setViewState] = useState<ViewState>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  // Restore whatever the user was last looking at after a hard refresh. Done
+  // in an effect (not a lazy useState initializer) so the first client render
+  // still matches the server-rendered empty-search markup and hydration
+  // doesn't mismatch — this restore happens a tick later instead.
+  useEffect(() => {
+    const lastViewed = readLastViewed<AccessibilityReport>();
+    if (lastViewed && !hasUnavailableData(lastViewed.report)) {
+      // Deliberate one-time sync from localStorage (an external system) on
+      // mount, not state derived from props/state — the pattern the
+      // set-state-in-effect rule otherwise guards against.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAddress(lastViewed.address);
+      setReport(lastViewed.report);
+    }
+  }, []);
+
   async function handleSearch(address: string) {
     setAddress(address);
     setError(null);
@@ -37,6 +60,7 @@ export default function Home() {
     if (cached && !hasUnavailableData(cached)) {
       setReport(cached);
       setViewState("idle");
+      writeLastViewed(address, cached, REPORT_CACHE_TTL_MS);
       return;
     }
 
@@ -56,6 +80,7 @@ export default function Home() {
 
       if (!hasUnavailableData(data)) {
         writeCache(cacheKey, data, REPORT_CACHE_TTL_MS);
+        writeLastViewed(address, data, REPORT_CACHE_TTL_MS);
       }
       setReport(data);
       setViewState("idle");
@@ -71,6 +96,7 @@ export default function Home() {
     setReport(null);
     setError(null);
     setViewState("idle");
+    clearLastViewed();
   }
 
   const isLoading = viewState === "loading";
