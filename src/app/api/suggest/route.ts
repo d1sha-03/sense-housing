@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const SUGGESTION_LIMIT = 5;
 const MIN_QUERY_LENGTH = 3;
+// Matches the address field's own cap (see validateAddress) — anything
+// longer than this is never a real address and would only be forwarded to
+// Nominatim to no purpose.
+const MAX_QUERY_LENGTH = 200;
+// Typeahead is debounced client-side at 300ms, so a real typing session
+// tolerates a higher ceiling than the report endpoint.
+const RATE_LIMIT = { windowMs: 10_000, max: 20 };
 // Overfetch before filtering down to house-numbered results, since a chunk
 // of raw matches (streets, neighborhoods, hamlets) get discarded below.
 const FETCH_LIMIT = 15;
@@ -21,9 +29,17 @@ export interface AddressSuggestion {
  * whatever a client happens to send.
  */
 export async function GET(request: NextRequest) {
+  const { limited, retryAfterSeconds } = checkRateLimit(`suggest:${getClientIp(request)}`, RATE_LIMIT);
+  if (limited) {
+    return NextResponse.json(
+      { suggestions: [] },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
-  if (query.length < MIN_QUERY_LENGTH) {
+  if (query.length < MIN_QUERY_LENGTH || query.length > MAX_QUERY_LENGTH) {
     return NextResponse.json({ suggestions: [] });
   }
 

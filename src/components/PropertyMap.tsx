@@ -30,7 +30,10 @@ export function PropertyMap({ coordinates }: { coordinates: Coordinates }) {
       }
 
       mapRef.current.setView([coordinates.lat, coordinates.lng], 15);
-      L.marker([coordinates.lat, coordinates.lng], { icon: markerIcon }).addTo(mapRef.current);
+      // keyboard: false — this marker has no click/popup behavior, so making
+      // it a focusable "button" with no accessible name would be a
+      // dead-end tab stop rather than remove it from the tab order.
+      L.marker([coordinates.lat, coordinates.lng], { icon: markerIcon, keyboard: false }).addTo(mapRef.current);
     });
 
     return () => {
@@ -48,6 +51,8 @@ export function PropertyMap({ coordinates }: { coordinates: Coordinates }) {
   return (
     <div
       ref={containerRef}
+      role="application"
+      aria-label={`Map showing the property location at approximately ${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}. Use arrow keys to pan and plus/minus to zoom.`}
       className="h-56 overflow-hidden rounded-2xl border border-border-subtle shadow-[var(--shadow-soft)] sm:h-72 [&_.leaflet-control-attribution]:text-[10px]"
     />
   );

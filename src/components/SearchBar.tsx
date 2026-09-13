@@ -3,18 +3,21 @@
 import { Search, Loader2 } from "lucide-react";
 import { FormEvent, KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { validateAddress } from "@/lib/validation";
+import { normalizeAddressKey, readCache, writeCache } from "@/lib/clientCache";
 import type { AddressSuggestion } from "@/app/api/suggest/route";
 
 interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
   onSubmit: (address: string) => void;
   isLoading: boolean;
 }
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
+const SUGGEST_CACHE_TTL_MS = 30 * 60 * 1000;
 
-export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
-  const [address, setAddress] = useState("");
+export function SearchBar({ value: address, onChange, onSubmit, isLoading }: SearchBarProps) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -53,6 +56,15 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
       return;
     }
 
+    const cacheKey = `suggest:${normalizeAddressKey(trimmed)}`;
+    const cached = readCache<AddressSuggestion[]>(cacheKey);
+    if (cached) {
+      setSuggestions(cached);
+      setActiveIndex(-1);
+      setIsOpen(cached.length > 0);
+      return;
+    }
+
     debounceRef.current = setTimeout(async () => {
       const controller = new AbortController();
       abortRef.current = controller;
@@ -63,6 +75,7 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
         if (!response.ok) return;
         const data = await response.json();
         const results: AddressSuggestion[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
+        writeCache(cacheKey, results, SUGGEST_CACHE_TTL_MS);
         setSuggestions(results);
         setActiveIndex(-1);
         setIsOpen(results.length > 0);
@@ -75,13 +88,13 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
   }
 
   function handleChange(value: string) {
-    setAddress(value);
+    onChange(value);
     if (validationError) setValidationError(null);
     scheduleSuggestionFetch(value);
   }
 
   function selectSuggestion(suggestion: AddressSuggestion) {
-    setAddress(suggestion.formattedAddress);
+    onChange(suggestion.formattedAddress);
     setSuggestions([]);
     setIsOpen(false);
     setActiveIndex(-1);
@@ -134,8 +147,12 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
         className="flex w-full flex-col gap-3 rounded-2xl border border-border-subtle bg-surface p-2 shadow-[var(--shadow-soft)] transition-shadow duration-300 focus-within:shadow-[var(--shadow-soft-hover)] sm:flex-row sm:items-center sm:p-2"
       >
         <div className="relative flex flex-1 items-center gap-3 px-3 py-2.5">
-          <Search className="h-4.5 w-4.5 shrink-0 text-foreground/35" strokeWidth={2} />
+          <Search aria-hidden="true" className="h-4.5 w-4.5 shrink-0 text-foreground/50" strokeWidth={2} />
+          <label htmlFor={`${listboxId}-input`} className="sr-only">
+            Address
+          </label>
           <input
+            id={`${listboxId}-input`}
             type="text"
             role="combobox"
             aria-expanded={isOpen}
@@ -152,7 +169,7 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
             aria-invalid={validationError ? true : undefined}
             aria-describedby={validationError ? "search-address-error" : undefined}
             autoComplete="off"
-            className="w-full bg-transparent text-[15px] text-foreground placeholder:text-foreground/35 focus:outline-none"
+            className="w-full rounded-md bg-transparent text-[15px] text-foreground placeholder:text-foreground/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           />
           {isOpen && suggestions.length > 0 && (
             <ul
@@ -188,7 +205,7 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
               Analyzing…
             </>
           ) : (
@@ -197,7 +214,7 @@ export function SearchBar({ onSubmit, isLoading }: SearchBarProps) {
         </button>
       </form>
       {validationError && (
-        <p id="search-address-error" className="mt-2 px-1 text-sm text-danger">
+        <p id="search-address-error" role="alert" className="mt-2 px-1 text-sm text-danger">
           {validationError}
         </p>
       )}

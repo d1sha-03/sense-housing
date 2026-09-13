@@ -22,6 +22,10 @@ async function getFaultInformation(coords: Coordinates): Promise<FaultLineInform
   url.searchParams.set("geometry", `${coords.lng},${coords.lat}`);
   url.searchParams.set("geometryType", "esriGeometryPoint");
   url.searchParams.set("inSR", "4326");
+  // Without an explicit outSR, this layer returns geometry in Web Mercator
+  // (wkid 102100) meters — nearestPointOnPolylineMiles expects lat/lng
+  // degrees, so force WGS84 output to match.
+  url.searchParams.set("outSR", "4326");
   url.searchParams.set("distance", "75");
   url.searchParams.set("units", "esriSRUnit_StatuteMile");
   url.searchParams.set("spatialRel", "esriSpatialRelIntersects");

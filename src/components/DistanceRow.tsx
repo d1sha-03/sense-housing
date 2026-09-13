@@ -15,7 +15,7 @@ export function DistanceRow({ label, distanceMiles, detail, status = "available"
     <div className="flex items-center justify-between border-b border-border-subtle/70 py-2.5 last:border-b-0 last:pb-0">
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
-        {resolvedDetail && <p className="text-xs text-foreground/50">{resolvedDetail}</p>}
+        {resolvedDetail && <p className="text-xs text-foreground/65">{resolvedDetail}</p>}
       </div>
       {status === "coming_soon" ? (
         <ComingSoonBadge />

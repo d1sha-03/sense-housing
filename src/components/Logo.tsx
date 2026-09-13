@@ -5,6 +5,7 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <div className="flex items-center gap-2.5">
       <div
+        aria-hidden="true"
         className={`flex ${dims} items-center justify-center rounded-xl font-semibold text-white`}
         style={{ background: "linear-gradient(135deg, #1E3A8A, #14B8A6)" }}
       >

@@ -18,7 +18,7 @@ function HazardRow({ assessment }: { assessment: HazardAssessment }) {
     <div className="flex items-center justify-between border-b border-border-subtle/70 py-2.5 last:border-b-0 last:pb-0">
       <div>
         <p className="text-sm font-medium text-foreground">{assessment.label}</p>
-        {assessment.detail && <p className="text-xs text-foreground/50">{assessment.detail}</p>}
+        {assessment.detail && <p className="text-xs text-foreground/65">{assessment.detail}</p>}
       </div>
       {assessment.risk && <RiskBadge risk={assessment.risk} />}
     </div>

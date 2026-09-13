@@ -1,9 +1,9 @@
 import type { RiskLevel } from "@/lib/types";
 
 const RISK_STYLES: Record<RiskLevel, string> = {
-  low: "bg-success-50 text-success",
-  moderate: "bg-warning-50 text-warning",
-  high: "bg-danger-50 text-danger",
+  low: "bg-success-50 text-success-700",
+  moderate: "bg-warning-50 text-warning-700",
+  high: "bg-danger-50 text-danger-700",
 };
 
 const RISK_LABELS: Record<RiskLevel, string> = {
@@ -25,7 +25,7 @@ export function RiskBadge({ risk }: { risk: RiskLevel }) {
 
 export function ComingSoonBadge() {
   return (
-    <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/50">
+    <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/65">
       Coming Soon
     </span>
   );
@@ -36,7 +36,7 @@ export function ComingSoonBadge() {
  * built yet (see ComingSoonBadge). */
 export function UnavailableBadge() {
   return (
-    <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/40">
+    <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-1 text-xs font-medium text-foreground/65">
       Data Unavailable
     </span>
   );
