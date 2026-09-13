@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { hasValidAddressCharacters } from "@/lib/validation";
 
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const SUGGESTION_LIMIT = 5;
@@ -39,7 +40,14 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
-  if (query.length < MIN_QUERY_LENGTH || query.length > MAX_QUERY_LENGTH) {
+  if (
+    query.length < MIN_QUERY_LENGTH ||
+    query.length > MAX_QUERY_LENGTH ||
+    !hasValidAddressCharacters(query)
+  ) {
+    // A query this endpoint won't serve suggestions for is treated the same
+    // as any other miss (see the catch below) — this is a convenience
+    // endpoint, not the place to explain why input was rejected.
     return NextResponse.json({ suggestions: [] });
   }
 

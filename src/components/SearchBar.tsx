@@ -169,7 +169,7 @@ export function SearchBar({ value: address, onChange, onSubmit, isLoading }: Sea
             aria-invalid={validationError ? true : undefined}
             aria-describedby={validationError ? "search-address-error" : undefined}
             autoComplete="off"
-            className="w-full rounded-md bg-transparent text-[15px] text-foreground placeholder:text-foreground/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="-mx-1.5 -my-1 w-[calc(100%+0.75rem)] rounded-md bg-transparent px-1.5 py-1 text-[15px] text-foreground placeholder:text-foreground/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
           />
           {isOpen && suggestions.length > 0 && (
             <ul
